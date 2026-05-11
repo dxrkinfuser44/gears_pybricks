@@ -494,7 +494,7 @@ var simPanel = new function() {
       return;
     }
     let wasRunning = skulpt.running;
-    if (skulpt.running) {
+    if (wasRunning) {
       skulpt.hardInterrupt = true;
       self.setRunIcon('run');
     } else {

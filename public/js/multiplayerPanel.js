@@ -22,8 +22,9 @@ var multiplayer = new function() {
   this.heartbeatTimer = null;
   this.messageWindowStart = 0;
   this.messageCount = 0;
-  this.maxMessageSize = 60000; // Keep payloads below typical browser data channel limits.
+  this.maxMessageSize = 60000; // Keep payloads below conservative ordered data channel limits (~64KB in Firefox).
   this.maxMessagesPerSecond = 80;
+  this.debug = false;
   this.statusMessage = 'Idle';
   this.statusIsError = false;
   this.useStun = false;
@@ -192,7 +193,13 @@ var multiplayer = new function() {
 
   this.encodePayload = function(payload) {
     var json = JSON.stringify(payload);
-    var base = btoa(unescape(encodeURIComponent(json)));
+    var encoder = new TextEncoder();
+    var bytes = encoder.encode(json);
+    var binary = '';
+    bytes.forEach(function(byte) {
+      binary += String.fromCharCode(byte);
+    });
+    var base = btoa(binary);
     return base.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   };
 
@@ -201,8 +208,13 @@ var multiplayer = new function() {
     while (base.length % 4) {
       base += '=';
     }
-    var json = decodeURIComponent(escape(atob(base)));
-    return JSON.parse(json);
+    var binary = atob(base);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    var decoder = new TextDecoder();
+    return JSON.parse(decoder.decode(bytes));
   };
 
   this.extractPayload = function(text) {
@@ -379,6 +391,9 @@ var multiplayer = new function() {
       return;
     }
     if (typeof msg.seq != 'number' || msg.seq <= self.lastRemoteSeq) {
+      if (self.debug) {
+        console.warn('Dropping out-of-order message', msg.seq, self.lastRemoteSeq);
+      }
       return;
     }
     self.lastRemoteSeq = msg.seq;
@@ -791,9 +806,7 @@ var multiplayerPanel = new function() {
       navigator.clipboard.writeText(value);
       toastMsg('Copied to clipboard.');
     } else {
-      self.$link.select();
-      document.execCommand('copy');
-      toastMsg('Copied to clipboard.');
+      toastMsg('Clipboard API not available in this browser.');
     }
   };
 

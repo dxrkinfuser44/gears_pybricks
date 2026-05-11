@@ -50,10 +50,12 @@
         <li id="navBlocks" class="active">Blocks</li>
         <li id="navPython">Python</li>
         <li id="navSim">Simulator</li>
+        <li id="navMultiplayer">Multiplayer</li>
       </ul>
       <div class="menuBar">
         <div class="menuItem fileMenu">File</div>
         <div class="menuItem robotMenu">Robot</div>
+        <div class="menuItem multiplayerMenu">Multiplayer</div>
         <div class="menuItem helpMenu">Help</div>
       </div>
       <div class="panelControlsArea">
@@ -94,6 +96,75 @@
           <pre class="content"></pre>
         </div>
       </div>
+
+      <div class="panel multiplayerPanel" aria-labelledby="navMultiplayer">
+        <div class="multiplayerLayout">
+          <div class="mpSection">
+            <div class="mpRow">
+              <label for="mpRole">Role</label>
+              <select id="mpRole">
+                <option value="host">Host</option>
+                <option value="guest">Join</option>
+              </select>
+              <label for="mpSessionId" class="mpLabel">Session</label>
+              <input id="mpSessionId" type="text" readonly>
+              <button type="button" class="mpNewSession">New Session</button>
+            </div>
+            <div class="mpRow mpNote">
+              Link-based joining only. No dedicated servers; public STUN is optional and may help NAT traversal.
+            </div>
+          </div>
+
+          <div class="mpSection">
+            <div class="mpRow">
+              <label for="mpUseStun">Use public STUN</label>
+              <input type="checkbox" id="mpUseStun">
+            </div>
+          </div>
+
+          <div class="mpSection">
+            <div class="mpRow">
+              <button type="button" class="mpCreateLink">Create Host Link</button>
+              <button type="button" class="mpGenerateAnswer">Generate Answer Link</button>
+              <button type="button" class="mpStartSync">Start Sync</button>
+            </div>
+          </div>
+
+          <div class="mpSection">
+            <label for="mpLink">Share/Join Link or Payload</label>
+            <textarea id="mpLink" rows="4" placeholder="Paste link or payload here."></textarea>
+            <div class="mpRow">
+              <button type="button" class="mpCopyLink">Copy</button>
+              <button type="button" class="mpApplyLink">Apply</button>
+            </div>
+          </div>
+
+          <div class="mpSection">
+            <div class="mpRow mpStatusRow">
+              <span class="mpStatusLabel">Status:</span>
+              <span class="mpStatusValue" id="mpStatus">Idle</span>
+              <span class="mpBadge" id="mpRoleBadge">Role: none</span>
+            </div>
+            <div class="mpRow mpStatusRow">
+              <span>ICE:</span>
+              <span id="mpIceState">new</span>
+              <span class="mpSpacer">Channel:</span>
+              <span id="mpChannelState">closed</span>
+            </div>
+            <div class="mpRow mpStatusRow">
+              <span>Last heartbeat:</span>
+              <span id="mpHeartbeat">-</span>
+            </div>
+          </div>
+
+          <div class="mpSection">
+            <div class="mpRow">
+              <button type="button" class="mpResetSession">Reset Session</button>
+              <button type="button" class="mpDisconnect">Disconnect</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -130,6 +201,7 @@
   <script src="js/babylon.js?v=1596843175"></script>
   <script src="js/blocklyPanel.js?v=1596843175"></script>
   <script src="js/pythonPanel.js?v=1596843175"></script>
+  <script src="js/multiplayerPanel.js?v=1596843175"></script>
   <script src="js/simPanel.js?v=1596843175"></script>
   <script src="js/main.js?v=1596843175"></script>
 

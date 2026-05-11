@@ -194,6 +194,10 @@ var simPanel = new function() {
 
   // Select world map
   this.selectWorld = function() {
+    if (typeof multiplayer !== 'undefined' && multiplayer.shouldBlockLocalControl()) {
+      toastMsg('World selection is disabled for guests.');
+      return;
+    }
     let $body = $('<div class="selectWorld"></div>');
     let $select = $('<select></select>');
     let $description = $('<div class="description"><img class="thumbnail"><div class="text"></div></div>');
@@ -485,6 +489,11 @@ var simPanel = new function() {
 
   // Run the simulator
   this.runSim = function() {
+    if (typeof multiplayer !== 'undefined' && multiplayer.shouldBlockLocalControl()) {
+      toastMsg('Simulation controls are managed by the host.');
+      return;
+    }
+    let wasRunning = skulpt.running;
     if (skulpt.running) {
       skulpt.hardInterrupt = true;
       self.setRunIcon('run');
@@ -495,6 +504,9 @@ var simPanel = new function() {
       robot.reset();
       skulpt.runPython(pythonPanel.editor.getValue());
       self.setRunIcon('stop');
+    }
+    if (typeof multiplayer !== 'undefined') {
+      multiplayer.onLocalRunToggled(!wasRunning);
     }
   };
 
@@ -508,13 +520,20 @@ var simPanel = new function() {
   };
 
   // Reset simulator
-  this.resetSim = function() {
+  this.resetSim = function(force) {
+    if (!force && typeof multiplayer !== 'undefined' && multiplayer.shouldBlockLocalControl()) {
+      toastMsg('Simulation reset is managed by the host.');
+      return;
+    }
     self.clearWorldInfoPanel();
     self.hideWorldInfoPanel();
     babylon.resetScene();
     skulpt.hardInterrupt = true;
     self.setRunIcon('run');
     self.initSensorsPanel();
+    if (typeof multiplayer !== 'undefined') {
+      multiplayer.onLocalReset();
+    }
   };
 
   // Strip html tags

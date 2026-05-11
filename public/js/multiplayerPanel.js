@@ -400,7 +400,7 @@ var multiplayer = new function() {
     if (msg.sessionId !== self.sessionId) {
       return;
     }
-    if (typeof msg.seq !== 'number' || !self.isSeqNewer(msg.seq, self.lastRemoteSeq)) {
+    if (!self.shouldAcceptSeq(msg.seq)) {
       if (self.debug) {
         console.warn('Dropping out-of-order message', msg.seq, self.lastRemoteSeq);
       }
@@ -577,6 +577,7 @@ var multiplayer = new function() {
       wheel.actualPosition = state.position;
       wheel.prevPosition = state.position;
       wheel.speed = 0;
+      // _speed_sp is a Wheel internal setpoint used for ramping.
       wheel._speed_sp = 0;
       if (wheel.modes && typeof wheel.modes.STOP !== 'undefined') {
         wheel.mode = wheel.modes.STOP;
@@ -690,7 +691,15 @@ var multiplayer = new function() {
     if (seq > lastSeq) {
       return true;
     }
+    // Treat large negative deltas as wraparound (seq rolls over at maxSeq).
     return (lastSeq - seq) > (self.maxSeq / 2);
+  };
+
+  this.shouldAcceptSeq = function(seq) {
+    if (typeof seq !== 'number') {
+      return false;
+    }
+    return self.isSeqNewer(seq, self.lastRemoteSeq);
   };
 }
 

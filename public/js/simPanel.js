@@ -521,6 +521,7 @@ var simPanel = new function() {
 
   // Reset simulator
   this.resetSim = function(force) {
+    // force=true allows remote multiplayer resets to bypass guest control checks.
     if (!force && typeof multiplayer !== 'undefined' && multiplayer.shouldBlockLocalControl()) {
       toastMsg('Simulation reset is managed by the host.');
       return;

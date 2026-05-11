@@ -8,13 +8,13 @@ var multiplayer = new function() {
   this.localAnswer = null;
   this.remoteAnswer = null;
   this.pc = null;
-  this.dc = null;
+  this.dataChannel = null;
   this.connected = false;
   this.iceState = 'new';
-  this.dcState = 'closed';
+  this.dataChannelState = 'closed';
   this.lastHeartbeatAt = 0;
   this.seq = 0;
-  this.lastRemoteSeq = 0;
+  this.lastRemoteSeq = null;
   this.remoteConfigHash = null;
   this.pendingAnswerPayload = null;
   this.snapshotTimer = null;
@@ -22,8 +22,9 @@ var multiplayer = new function() {
   this.heartbeatTimer = null;
   this.messageWindowStart = 0;
   this.messageCount = 0;
-  this.maxMessageSize = 60000; // 60KB cap below Firefox ordered limits (~64KB) while staying safe across browsers.
+  this.maxMessageSize = 61440; // 60KB cap below Firefox ordered limits (~64KB) while staying safe across browsers.
   this.maxMessagesPerSecond = 80; // Higher than snapshot/delta cadence to allow bursts without disconnects.
+  this.maxSeq = 1000000000;
   this.debug = false;
   this.statusMessage = 'Idle';
   this.statusIsError = false;
@@ -103,12 +104,12 @@ var multiplayer = new function() {
     self.stopHeartbeat();
     self.connected = false;
     self.iceState = 'new';
-    self.dcState = 'closed';
-    self.lastRemoteSeq = 0;
+    self.dataChannelState = 'closed';
+    self.lastRemoteSeq = null;
     self.pendingAnswerPayload = null;
     self.remoteConfigHash = null;
-    if (self.dc) {
-      try { self.dc.close(); } catch (err) {
+    if (self.dataChannel) {
+      try { self.dataChannel.close(); } catch (err) {
         if (self.debug) {
           console.warn('Failed to close data channel', err);
         }
@@ -121,7 +122,7 @@ var multiplayer = new function() {
         }
       }
     }
-    self.dc = null;
+    self.dataChannel = null;
     self.pc = null;
     self.emitStatus('Disconnected');
   };
@@ -146,11 +147,11 @@ var multiplayer = new function() {
   };
 
   this.registerDataChannel = function(channel) {
-    self.dc = channel;
-    self.dcState = channel.readyState;
-    self.dc.onopen = function() {
+    self.dataChannel = channel;
+    self.dataChannelState = channel.readyState;
+    self.dataChannel.onopen = function() {
       self.connected = true;
-      self.dcState = 'open';
+      self.dataChannelState = 'open';
       self.emitStatus('Connected');
       self.startHeartbeat();
       if (self.isHost()) {
@@ -162,17 +163,17 @@ var multiplayer = new function() {
         self.sendMessage('ready', {});
       }
     };
-    self.dc.onclose = function() {
-      self.dcState = 'closed';
+    self.dataChannel.onclose = function() {
+      self.dataChannelState = 'closed';
       self.connected = false;
       self.emitStatus('Channel closed');
       self.stopSync();
       self.stopHeartbeat();
     };
-    self.dc.onerror = function() {
+    self.dataChannel.onerror = function() {
       self.emitStatus('Channel error', true);
     };
-    self.dc.onmessage = function(event) {
+    self.dataChannel.onmessage = function(event) {
       if (typeof event.data !== 'string') {
         return;
       }
@@ -200,6 +201,7 @@ var multiplayer = new function() {
   };
 
   this.encodePayload = function(payload) {
+    // Base64url encoding (RFC 4648) keeps payloads URL-safe.
     var json = JSON.stringify(payload);
     var encoder = new TextEncoder();
     var bytes = encoder.encode(json);
@@ -354,14 +356,14 @@ var multiplayer = new function() {
   };
 
   this.sendMessage = function(type, data) {
-    if (!self.dc || self.dc.readyState !== 'open') {
+    if (!self.dataChannel || self.dataChannel.readyState !== 'open') {
       return;
     }
     var msg = {
       type: type,
       data: data || {},
       sessionId: self.sessionId,
-      seq: ++self.seq,
+      seq: self.nextSeq(),
       ts: Date.now()
     };
     var text = JSON.stringify(msg);
@@ -369,7 +371,7 @@ var multiplayer = new function() {
       self.emitStatus('Outbound message too large', true);
       return;
     }
-    self.dc.send(text);
+    self.dataChannel.send(text);
   };
 
   this.handleMessage = function(raw) {
@@ -398,7 +400,7 @@ var multiplayer = new function() {
     if (msg.sessionId !== self.sessionId) {
       return;
     }
-    if (typeof msg.seq !== 'number' || msg.seq <= self.lastRemoteSeq) {
+    if (typeof msg.seq !== 'number' || !self.isSeqNewer(msg.seq, self.lastRemoteSeq)) {
       if (self.debug) {
         console.warn('Dropping out-of-order message', msg.seq, self.lastRemoteSeq);
       }
@@ -542,6 +544,7 @@ var multiplayer = new function() {
       );
     } else if (transform.r) {
       if (mesh.rotationQuaternion) {
+        // Clear quaternion so Babylon applies Euler rotations consistently.
         mesh.rotationQuaternion = null;
       }
       mesh.rotation = new BABYLON.Vector3(transform.r[0], transform.r[1], transform.r[2]);
@@ -671,6 +674,24 @@ var multiplayer = new function() {
     }
     self.sendMessage('reset', {});
   };
+
+  this.nextSeq = function() {
+    self.seq = (self.seq + 1) % self.maxSeq;
+    return self.seq;
+  };
+
+  this.isSeqNewer = function(seq, lastSeq) {
+    if (lastSeq === null || typeof lastSeq === 'undefined') {
+      return true;
+    }
+    if (seq === lastSeq) {
+      return false;
+    }
+    if (seq > lastSeq) {
+      return true;
+    }
+    return (lastSeq - seq) > (self.maxSeq / 2);
+  };
 }
 
 var multiplayerPanel = new function() {
@@ -703,7 +724,7 @@ var multiplayerPanel = new function() {
       multiplayer.setRole(self.$role.val());
       self.updateStatus();
     });
-    self.$newSession.click(self.newSession);
+    self.$newSession.click(self.handleNewSessionClick);
     self.$useStun.change(function() {
       multiplayer.setUseStun(self.$useStun.prop('checked'));
     });
@@ -731,7 +752,7 @@ var multiplayerPanel = new function() {
     self.$status.toggleClass('error', multiplayer.statusIsError);
     self.$roleBadge.text('Role: ' + (multiplayer.role || 'none'));
     self.$iceState.text(multiplayer.iceState || 'new');
-    self.$channelState.text(multiplayer.dcState || 'closed');
+    self.$channelState.text(multiplayer.dataChannelState || 'closed');
     if (multiplayer.lastHeartbeatAt) {
       var seconds = Math.round((Date.now() - multiplayer.lastHeartbeatAt) / 1000);
       self.$heartbeat.text(seconds + 's ago');
@@ -821,7 +842,7 @@ var multiplayerPanel = new function() {
     }
   };
 
-  this.newSession = function() {
+  this.handleNewSessionClick = function() {
     multiplayer.resetSession();
     self.$sessionId.val(multiplayer.sessionId);
     self.updateStatus();

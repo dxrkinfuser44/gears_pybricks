@@ -493,8 +493,8 @@ var simPanel = new function() {
       toastMsg('Simulation controls are managed by the host.');
       return;
     }
-    let wasRunning = skulpt.running;
-    if (wasRunning) {
+    let isRunning = skulpt.running;
+    if (isRunning) {
       skulpt.hardInterrupt = true;
       self.setRunIcon('run');
     } else {
@@ -506,7 +506,7 @@ var simPanel = new function() {
       self.setRunIcon('stop');
     }
     if (typeof multiplayer !== 'undefined') {
-      multiplayer.onLocalRunToggled(!wasRunning);
+      multiplayer.onLocalRunToggled(!isRunning);
     }
   };
 

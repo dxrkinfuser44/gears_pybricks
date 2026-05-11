@@ -22,7 +22,7 @@ var multiplayer = new function() {
   this.heartbeatTimer = null;
   this.messageWindowStart = 0;
   this.messageCount = 0;
-  this.maxMessageSize = 60000; // 60KB cap to stay under conservative ordered data channel limits (~64KB in Firefox).
+  this.maxMessageSize = 60000; // 60KB cap below Firefox ordered limits (~64KB) while staying safe across browsers.
   this.maxMessagesPerSecond = 80; // Higher than snapshot/delta cadence to allow bursts without disconnects.
   this.debug = false;
   this.statusMessage = 'Idle';
@@ -108,10 +108,18 @@ var multiplayer = new function() {
     self.pendingAnswerPayload = null;
     self.remoteConfigHash = null;
     if (self.dc) {
-      try { self.dc.close(); } catch (err) {}
+      try { self.dc.close(); } catch (err) {
+        if (self.debug) {
+          console.warn('Failed to close data channel', err);
+        }
+      }
     }
     if (self.pc) {
-      try { self.pc.close(); } catch (err) {}
+      try { self.pc.close(); } catch (err) {
+        if (self.debug) {
+          console.warn('Failed to close peer connection', err);
+        }
+      }
     }
     self.dc = null;
     self.pc = null;
@@ -533,6 +541,9 @@ var multiplayer = new function() {
         transform.rq[3]
       );
     } else if (transform.r) {
+      if (mesh.rotationQuaternion) {
+        mesh.rotationQuaternion = null;
+      }
       mesh.rotation = new BABYLON.Vector3(transform.r[0], transform.r[1], transform.r[2]);
     }
   };
@@ -564,7 +575,7 @@ var multiplayer = new function() {
       wheel.prevPosition = state.position;
       wheel.speed = 0;
       wheel._speed_sp = 0;
-      if (wheel.modes) {
+      if (wheel.modes && typeof wheel.modes.STOP !== 'undefined') {
         wheel.mode = wheel.modes.STOP;
       }
     }

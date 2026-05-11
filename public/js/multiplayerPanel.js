@@ -22,7 +22,7 @@ var multiplayer = new function() {
   this.heartbeatTimer = null;
   this.messageWindowStart = 0;
   this.messageCount = 0;
-  this.maxMessageSize = 61440; // 60KB cap below Firefox ordered limits (~64KB) while staying safe across browsers.
+  this.maxMessageSize = 61440; // 60KB cap below Firefox ordered data channel message limit (~64KB).
   this.maxMessagesPerSecond = 80; // Higher than snapshot/delta cadence to allow bursts without disconnects.
   this.maxSeq = 1000000000;
   this.debug = false;
@@ -545,7 +545,7 @@ var multiplayer = new function() {
     } else if (transform.r) {
       if (mesh.rotationQuaternion) {
         // Clear quaternion so Babylon applies Euler rotations consistently.
-        mesh.rotationQuaternion = null;
+        delete mesh.rotationQuaternion;
       }
       mesh.rotation = new BABYLON.Vector3(transform.r[0], transform.r[1], transform.r[2]);
     }
@@ -577,8 +577,6 @@ var multiplayer = new function() {
       wheel.actualPosition = state.position;
       wheel.prevPosition = state.position;
       wheel.speed = 0;
-      // _speed_sp is a Wheel internal setpoint used for ramping.
-      wheel._speed_sp = 0;
       if (wheel.modes && typeof wheel.modes.STOP !== 'undefined') {
         wheel.mode = wheel.modes.STOP;
       }
@@ -691,7 +689,7 @@ var multiplayer = new function() {
     if (seq > lastSeq) {
       return true;
     }
-    // Treat large negative deltas as wraparound (seq rolls over at maxSeq).
+    // Treat large negative deltas (> half the sequence space) as wraparound.
     return (lastSeq - seq) > (self.maxSeq / 2);
   };
 

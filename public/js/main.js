@@ -9,12 +9,14 @@ var main = new function() {
     self.$fileMenu = $('.fileMenu');
     self.$pythonMenu = $('.pythonMenu');
     self.$robotMenu = $('.robotMenu');
+    self.$multiplayerMenu = $('.multiplayerMenu');
     self.$helpMenu = $('.helpMenu');
 
     self.$navs.click(self.tabClicked);
     self.$fileMenu.click(self.toggleFileMenu);
     self.$pythonMenu.click(self.togglePythonMenu);
     self.$robotMenu.click(self.toggleRobotMenu);
+    self.$multiplayerMenu.click(self.toggleMultiplayerMenu);
     self.$helpMenu.click(self.toggleHelpMenu);
 
     window.addEventListener('beforeunload', self.checkUnsaved);
@@ -248,6 +250,22 @@ var main = new function() {
     }
   };
 
+  // Toggle multiplayer
+  this.toggleMultiplayerMenu = function(e) {
+    if ($('.multiplayerMenuDropDown').length === 0) {
+      $('.menuDropDown').remove();
+      e.stopPropagation();
+
+      let menuItems = [
+        {html: 'Create Host Link', line: false, callback: multiplayerPanel.createHostLink},
+        {html: 'Join via Link', line: false, callback: multiplayerPanel.focusLinkInput},
+        {html: 'Disconnect', line: false, callback: multiplayer.disconnect}
+      ];
+
+      menuDropDown(self.$multiplayerMenu, menuItems, {className: 'multiplayerMenuDropDown'});
+    }
+  };
+
   this.switchToPybricks = function() {
     blockly.generator = pybricks_generator;
     blockly.generator.load();
@@ -387,13 +405,13 @@ var main = new function() {
     }
 
     function getPanelByNav(nav) {
-      if (nav == 'navBlocks') {
-        return blocklyPanel;
-      } else if (nav == 'navPython') {
-        return pythonPanel;
-      } else if (nav == 'navSim') {
-        return simPanel;
-      }
+      var panelMap = {
+        navBlocks: blocklyPanel,
+        navPython: pythonPanel,
+        navSim: simPanel,
+        navMultiplayer: multiplayerPanel
+      };
+      return panelMap[nav];
     };
 
     inActiveNav = self.$navs.siblings('.active').attr('id');

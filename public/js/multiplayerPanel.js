@@ -22,8 +22,8 @@ var multiplayer = new function() {
   this.heartbeatTimer = null;
   this.messageWindowStart = 0;
   this.messageCount = 0;
-  this.maxMessageSize = 60000; // Keep payloads below conservative ordered data channel limits (~64KB in Firefox).
-  this.maxMessagesPerSecond = 80;
+  this.maxMessageSize = 60000; // 60KB cap to stay under conservative ordered data channel limits (~64KB in Firefox).
+  this.maxMessagesPerSecond = 80; // Higher than snapshot/delta cadence to allow bursts without disconnects.
   this.debug = false;
   this.statusMessage = 'Idle';
   this.statusIsError = false;
@@ -38,7 +38,7 @@ var multiplayer = new function() {
   ];
 
   this.init = function() {
-    self.useStun = localStorage.getItem('mpUseStun') == 'true';
+    self.useStun = localStorage.getItem('mpUseStun') === 'true';
     self.role = localStorage.getItem('mpRole') || 'host';
     self.sessionId = localStorage.getItem('mpSessionId') || self.generateSessionId();
     self.persistSession();
@@ -68,11 +68,11 @@ var multiplayer = new function() {
   };
 
   this.isHost = function() {
-    return self.role == 'host';
+    return self.role === 'host';
   };
 
   this.isGuest = function() {
-    return self.role == 'guest';
+    return self.role === 'guest';
   };
 
   this.isGuestConnected = function() {
@@ -86,7 +86,7 @@ var multiplayer = new function() {
   this.emitStatus = function(message, isError=false) {
     self.statusMessage = message;
     self.statusIsError = isError;
-    if (typeof multiplayerPanel != 'undefined' && typeof multiplayerPanel.updateStatus == 'function') {
+    if (typeof multiplayerPanel !== 'undefined' && typeof multiplayerPanel.updateStatus === 'function') {
       multiplayerPanel.updateStatus();
     }
   };
@@ -177,12 +177,12 @@ var multiplayer = new function() {
   };
 
   this.waitForIceGatheringComplete = function(pc) {
-    if (pc.iceGatheringState == 'complete') {
+    if (pc.iceGatheringState === 'complete') {
       return Promise.resolve();
     }
     return new Promise(function(resolve) {
       function checkState() {
-        if (pc.iceGatheringState == 'complete') {
+        if (pc.iceGatheringState === 'complete') {
           pc.removeEventListener('icegatheringstatechange', checkState);
           resolve();
         }
@@ -231,7 +231,7 @@ var multiplayer = new function() {
       trimmed = parts[parts.length - 1];
     }
     trimmed = trimmed.replace(/^#/, '');
-    if (trimmed == '') {
+    if (trimmed === '') {
       return null;
     }
     return self.decodePayload(trimmed);
@@ -293,7 +293,7 @@ var multiplayer = new function() {
       self.emitStatus('Create host link first', true);
       return;
     }
-    if (payload.sessionId != self.sessionId) {
+    if (payload.sessionId !== self.sessionId) {
       self.emitStatus('Session mismatch', true);
       return;
     }
@@ -307,9 +307,9 @@ var multiplayer = new function() {
       self.emitStatus('Invalid payload', true);
       return null;
     }
-    if (payload.type == 'offer') {
+    if (payload.type === 'offer') {
       return await self.joinFromOffer(payload);
-    } else if (payload.type == 'answer') {
+    } else if (payload.type === 'answer') {
       await self.acceptAnswer(payload);
       return null;
     } else {
@@ -325,17 +325,17 @@ var multiplayer = new function() {
     }
     try {
       var payload = self.extractPayload(hash);
-      if (payload && payload.type == 'offer') {
+      if (payload && payload.type === 'offer') {
         self.applyPayload(payload)
           .then(function(link) {
-            if (link && typeof multiplayerPanel != 'undefined') {
+            if (link && typeof multiplayerPanel !== 'undefined') {
               multiplayerPanel.setLink(link);
               toastMsg('Offer detected. Share the answer link with the host.');
             }
           });
-      } else if (payload && payload.type == 'answer') {
+      } else if (payload && payload.type === 'answer') {
         self.pendingAnswerPayload = payload;
-        if (typeof multiplayerPanel != 'undefined') {
+        if (typeof multiplayerPanel !== 'undefined') {
           multiplayerPanel.setLink(window.location.href);
         }
         self.emitStatus('Answer detected. Click Apply after creating host link.', true);
@@ -346,7 +346,7 @@ var multiplayer = new function() {
   };
 
   this.sendMessage = function(type, data) {
-    if (!self.dc || self.dc.readyState != 'open') {
+    if (!self.dc || self.dc.readyState !== 'open') {
       return;
     }
     var msg = {
@@ -384,13 +384,13 @@ var multiplayer = new function() {
       self.emitStatus('Bad message format', true);
       return;
     }
-    if (!msg || typeof msg.type != 'string') {
+    if (!msg || typeof msg.type !== 'string') {
       return;
     }
-    if (msg.sessionId != self.sessionId) {
+    if (msg.sessionId !== self.sessionId) {
       return;
     }
-    if (typeof msg.seq != 'number' || msg.seq <= self.lastRemoteSeq) {
+    if (typeof msg.seq !== 'number' || msg.seq <= self.lastRemoteSeq) {
       if (self.debug) {
         console.warn('Dropping out-of-order message', msg.seq, self.lastRemoteSeq);
       }
@@ -399,43 +399,43 @@ var multiplayer = new function() {
     self.lastRemoteSeq = msg.seq;
     self.lastHeartbeatAt = now;
 
-    if (msg.type == 'hello') {
+    if (msg.type === 'hello') {
       if (self.isGuest()) {
         self.applyRemoteConfig(msg.data);
       }
-    } else if (msg.type == 'ready') {
+    } else if (msg.type === 'ready') {
       if (self.isHost()) {
         self.sendHello();
       }
-    } else if (msg.type == 'start') {
+    } else if (msg.type === 'start') {
       if (self.isGuest()) {
         simPanel.setRunIcon('stop');
       }
-    } else if (msg.type == 'pause') {
+    } else if (msg.type === 'pause') {
       if (self.isGuest()) {
         simPanel.setRunIcon('run');
       }
-    } else if (msg.type == 'reset') {
+    } else if (msg.type === 'reset') {
       if (self.isGuest()) {
         simPanel.resetSim(true);
         self.disablePhysics();
       }
-    } else if (msg.type == 'stateSnapshot') {
+    } else if (msg.type === 'stateSnapshot') {
       if (self.isGuest()) {
         self.applyRemoteConfig(msg.data);
         self.applyRemoteState(msg.data.state);
       }
-    } else if (msg.type == 'stateDelta') {
+    } else if (msg.type === 'stateDelta') {
       if (self.isGuest()) {
         self.applyRemoteState(msg.data.state);
       }
-    } else if (msg.type == 'ping') {
+    } else if (msg.type === 'ping') {
       if (self.isGuest()) {
         self.sendMessage('pong', {});
       }
-    } else if (msg.type == 'pong') {
+    } else if (msg.type === 'pong') {
       // heartbeat ack
-    } else if (msg.type == 'error') {
+    } else if (msg.type === 'error') {
       self.emitStatus(msg.data && msg.data.message ? msg.data.message : 'Remote error', true);
     }
   };
@@ -463,15 +463,15 @@ var multiplayer = new function() {
       worldOptions: config.worldOptions,
       robotOptions: config.robotOptions
     });
-    if (hash == self.remoteConfigHash) {
-      if (typeof config.running == 'boolean') {
+    if (hash === self.remoteConfigHash) {
+      if (typeof config.running === 'boolean') {
         simPanel.setRunIcon(config.running ? 'stop' : 'run');
       }
       return;
     }
     self.remoteConfigHash = hash;
     if (config.worldName) {
-      var worldMatch = worlds.find(world => world.name == config.worldName);
+      var worldMatch = worlds.find(world => world.name === config.worldName);
       if (worldMatch) {
         babylon.world = worldMatch;
       }
@@ -485,13 +485,13 @@ var multiplayer = new function() {
         self.disablePhysics();
       });
     }
-    if (typeof config.running == 'boolean') {
+    if (typeof config.running === 'boolean') {
       simPanel.setRunIcon(config.running ? 'stop' : 'run');
     }
   };
 
   this.disablePhysics = function() {
-    if (babylon.scene && typeof babylon.scene.disablePhysicsEngine == 'function') {
+    if (babylon.scene && typeof babylon.scene.disablePhysicsEngine === 'function') {
       babylon.scene.disablePhysicsEngine();
     }
   };
@@ -558,7 +558,7 @@ var multiplayer = new function() {
     if (state.mesh) {
       self.applyTransform(wheel.mesh, state.mesh);
     }
-    if (typeof state.position == 'number') {
+    if (typeof state.position === 'number') {
       wheel.position = state.position;
       wheel.actualPosition = state.position;
       wheel.prevPosition = state.position;
@@ -754,7 +754,7 @@ var multiplayerPanel = new function() {
       toastMsg('Invalid offer payload.');
       return;
     }
-    if (!payload || payload.type != 'offer') {
+    if (!payload || payload.type !== 'offer') {
       toastMsg('Paste a host offer link first.');
       return;
     }

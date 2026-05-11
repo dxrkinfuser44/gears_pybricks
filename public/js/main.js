@@ -252,7 +252,7 @@ var main = new function() {
 
   // Toggle multiplayer
   this.toggleMultiplayerMenu = function(e) {
-    if ($('.multiplayerMenuDropDown').length == 0) {
+    if ($('.multiplayerMenuDropDown').length === 0) {
       $('.menuDropDown').remove();
       e.stopPropagation();
 

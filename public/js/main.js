@@ -405,16 +405,14 @@ var main = new function() {
     }
 
     function getPanelByNav(nav) {
-    if (nav == 'navBlocks') {
-      return blocklyPanel;
-    } else if (nav == 'navPython') {
-      return pythonPanel;
-    } else if (nav == 'navSim') {
-      return simPanel;
-    } else if (nav == 'navMultiplayer') {
-      return multiplayerPanel;
-    }
-  };
+      var panelMap = {
+        navBlocks: blocklyPanel,
+        navPython: pythonPanel,
+        navSim: simPanel,
+        navMultiplayer: multiplayerPanel
+      };
+      return panelMap[nav];
+    };
 
     inActiveNav = self.$navs.siblings('.active').attr('id');
     inActive = getPanelByNav(inActiveNav);

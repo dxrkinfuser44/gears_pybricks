@@ -22,7 +22,8 @@ var multiplayer = new function() {
   this.heartbeatTimer = null;
   this.messageWindowStart = 0;
   this.messageCount = 0;
-  this.maxMessageSize = 60000;
+  this.maxMessageSize = 60000; // Keep payloads below typical browser data channel limits.
+  this.maxMessagesPerSecond = 80;
   this.statusMessage = 'Idle';
   this.statusIsError = false;
   this.useStun = false;
@@ -358,7 +359,7 @@ var multiplayer = new function() {
       self.messageCount = 0;
     }
     self.messageCount += 1;
-    if (self.messageCount > 80) {
+    if (self.messageCount > self.maxMessagesPerSecond) {
       self.emitStatus('Rate limit exceeded', true);
       self.disconnect();
       return;

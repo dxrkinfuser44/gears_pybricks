@@ -845,8 +845,13 @@ var multiplayerPanel = new function() {
       return;
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(value);
-      toastMsg('Copied to clipboard.');
+      navigator.clipboard.writeText(value)
+        .then(function() {
+          toastMsg('Copied to clipboard.');
+        })
+        .catch(function() {
+          toastMsg('Failed to copy to clipboard.');
+        });
     } else {
       toastMsg('Clipboard API not available in this browser.');
     }

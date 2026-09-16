@@ -516,3 +516,76 @@ ul.menuDropDownRightAlign {
   color: #FFFF00; }
 .console .player3 {
   color: #FF0000; }
+
+.multiplayerPanel {
+  padding: 1em;
+  overflow-y: auto;
+  background: #E4F0FE; }
+  .multiplayerPanel button {
+    padding: 0.3em 0.8em;
+    border: solid 1px #bbbbbb;
+    border-radius: 0.3em;
+    background: #f8f9fa;
+    cursor: pointer; }
+  .multiplayerPanel button:hover {
+    color: #4994FB; }
+  .multiplayerPanel label {
+    font-weight: bold;
+    color: #555555; }
+  .multiplayerPanel input[type="text"], .multiplayerPanel select, .multiplayerPanel textarea {
+    border: solid 1px #bbbbbb;
+    border-radius: 0.3em;
+    padding: 0.3em;
+    font-size: 100%; }
+
+.multiplayerLayout {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1em; }
+
+.mpSection {
+  background: white;
+  border: solid 1px #bbbbbb;
+  border-radius: 0.5em;
+  padding: 0.75em;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08); }
+
+.mpRow {
+  display: flex;
+  gap: 0.75em;
+  align-items: center;
+  flex-wrap: wrap; }
+
+.mpLabel {
+  margin-left: 0.5em; }
+
+.mpNote {
+  color: #666666;
+  font-size: 90%; }
+
+#mpLink {
+  width: 100%;
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+  resize: vertical; }
+
+.mpStatusRow {
+  gap: 0.5em; }
+
+.mpStatusValue {
+  font-weight: bold; }
+
+.mpBadge {
+  background: #D9E3F1;
+  color: #4994FB;
+  padding: 0.2em 0.6em;
+  border-radius: 1em;
+  font-weight: bold; }
+
+.mpSpacer {
+  margin-left: 1em; }
+
+.mpStatusValue.error {
+  color: #ff0000; }

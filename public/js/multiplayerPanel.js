@@ -58,6 +58,9 @@ var multiplayer = new function() {
   };
 
   this.setRole = function(role) {
+    if (self.connected) {
+      return;
+    }
     self.role = role || 'none';
     self.persistSession();
     self.emitStatus(self.connected ? 'Connected' : 'Idle');
